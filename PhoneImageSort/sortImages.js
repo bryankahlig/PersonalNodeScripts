@@ -42,11 +42,11 @@ function buildDestinationFolderByExifData(path, fileToMove, baseDestinationFolde
     } else {
         if (fileToMove.endsWith('mp4')) {
             // we can't read data from mp4 files
-            return "ERROR"
+            return "ERROR";
         }
     }
     if (fileDate == "") {
-        return "ERROR"
+        return "ERROR";
     }
     console.log("FileDate: " + fileDate);
     var fileYear = fileDate.getFullYear().toString();
@@ -93,6 +93,9 @@ function shouldSkipFile(filename) {
 }
 
 function getIndexOfYearInFilename(filename) {
+    if (filename.match(/20(?:19|20|21)(?:0[1-9]|1[0-2])(?:0[1-9]|1[0-9]|2[0-9]|3[01])_(\d*).(?:jpg|jpeg|mp4)/)) {
+        return 0;
+    }
     switch (filename.substring(0, 3)) {
         case "IMG":
             return 4;
