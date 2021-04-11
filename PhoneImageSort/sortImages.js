@@ -3,7 +3,7 @@ const path = require('path');
 const exif = require('exif').ExifImage;
 const sprintf = require('sprintf-js');
 
-var testRun = true;
+var testRun = false;
 
 function getFolders(dirPath) {
     var fullPath = path.resolve(dirPath)
@@ -21,37 +21,38 @@ function buildDestinationFolderByFilename(path, fileToMove, baseDestinationFolde
     if (indexOfYearInFilename == -1) {
         return "ERROR";
     }
-    var fileYear = fileToMove.substring(indexOfYearInFilename, 4);
-    var fileMonth = fileToMove.substring(indexOfYearInFilename+4, 2);
+    console.log("Index Of Year:" + indexOfYearInFilename);
+    var fileYear = fileToMove.substring(indexOfYearInFilename, indexOfYearInFilename + 4);
+    var fileMonth = fileToMove.substring(indexOfYearInFilename + 4, indexOfYearInFilename + 6);
     var filenameWithoutPath = fileToMove;
 
-    if (!fileYear.match("/^\d+$/") || !fileMonth.match(/^\d+$/)) {
+    if (!fileYear.match(/^\d+$/) || !fileMonth.match(/^\d+$/)) {
         return "ERROR";
     }
-    var resultingPath = baseDestinationFolder + fileYear + "/" + fileMonth + "/";
-    fs.mkdir(resultingPath);
+    var resultingPath = baseDestinationFolder + fileYear + "\\" + fileMonth + "\\";
+    fs.mkdir(resultingPath, {recursive: true}, (err) => {
+        if (err) {
+            console.log("Unable to make directory " + resultingPath + " - Error:" + err);
+        }
+    });
     return resultingPath + filenameWithoutPath;
 }
 
 function buildDestinationFolderByExifData(path, fileToMove, baseDestinationFolder) {
     var fileDate = Date.now();
-    console.log("FileDate init:" + fileDate.toString());
     if (fileToMove.endsWith('jpg') || fileToMove.endsWith('jpeg')) {
         fileDate = getExifDateForJpg(path + fileToMove);
-        console.log("FileDate exif: " + JSON.stringify(fileDate));
     } else {
-        if (fileToMove.endsWith('mp4')) {
-            // we can't read data from mp4 files
-            return "ERROR";
-        }
+        // we can't read data from mp4 files
+        return "ERROR";
     }
-    if (fileDate == "") {
+    if (fileDate == "ERROR") {
         return "ERROR";
     }
     console.log("FileDate: " + fileDate);
     var fileYear = fileDate.getFullYear().toString();
     var fileMonth = sprintf('%0d2', fileDate.getMonth());
-    var resultingPath = baseDestinationFolder + fileYear + "/" + fileMonth + "/";
+    var resultingPath = baseDestinationFolder + fileYear + "\\" + fileMonth + "\\";
     fs.mkdir(resultingPath);
     return resultingPath + fileToMove;
 }
@@ -69,8 +70,9 @@ function moveMedia(filenames, sourceFolder, baseDestinationFolder) {
             }
             console.log("Destination Folder:" + destinationFile);
             if (destinationFile == "ERROR") {
-                console.log("Skipping " + sourceFolder);
+                console.log("Skipping " + fullOriginalFilename);
             } else {
+                console.log("Destination: " + destinationFile);
                 if (testRun) {
                     console.log("TEST RUN DOING NOTHING");
                 } else {
@@ -93,7 +95,7 @@ function shouldSkipFile(filename) {
 }
 
 function getIndexOfYearInFilename(filename) {
-    if (filename.match(/20(?:19|20|21)(?:0[1-9]|1[0-2])(?:0[1-9]|1[0-9]|2[0-9]|3[01])_(\d*).(?:jpg|jpeg|mp4)/)) {
+    if (filename.match(/20(?:19|20|21)(?:0[1-9]|1[0-2])(?:0[1-9]|1[0-9]|2[0-9]|3[01])_(\d*)(_[\d])?.(?:jpg|jpeg|mp4|gif)/)) {
         return 0;
     }
     switch (filename.substring(0, 3)) {
@@ -112,24 +114,22 @@ function getIndexOfYearInFilename(filename) {
 }
 
 function getExifDateForJpg(filename) {
-    console.log("Getting EXIF data for: " + filename);
     var ExifImage = exif.ExifImage;
-    var jpegDate = "";
     try {
-        jpegDate = new ExifImage({ image : filename },
+        var exifData = new ExifImage({ image : filename },
             function (error, exifData) {
-                console.log("EXIF DATA: " + JSON.stringify(exifData));
                 if (error) {
                     console.log("Unable to read EXIF Data for " + filename + " Error:" + error.message);
-                    return "";
-                } else {
-                    return exifData.exif.CreateDate;
+                    return "ERROR";
                 }
-            }).exif.DateTimeOriginal;
+            });
+//        console.log("EXIFIMAGE RETURNED:" + JSON.stringify(exifData));
+        if (exifData == "ERROR") return jpegDate;
+        return exifData.exif.DateTimeOriginal;
     } catch (error) {
         console.log("Error reading EXIF data. ERROR:" + error);
+        return "ERROR";
     }
-    return jpegDate;
 }
 
 function getFiles(folder) {
