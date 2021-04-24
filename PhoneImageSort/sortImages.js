@@ -66,6 +66,7 @@ function moveMedia(filenames, sourceFolder, baseDestinationFolder) {
             if (destinationFile == "ERROR") {
                 console.log("Exif data failed. Using filename algorithm for: " + element);
                 var indexOfYearInFilename = getIndexOfYearInFilename(element);
+                console.log("Year index is " + indexOfYearInFilename + " for filename " + element);
                 destinationFile = buildDestinationFolderByFilename(sourceFolder, element, baseDestinationFolder);
             }
             console.log("Destination Folder:" + destinationFile);
@@ -95,18 +96,20 @@ function shouldSkipFile(filename) {
 }
 
 function getIndexOfYearInFilename(filename) {
-    if (filename.match(/20(?:19|20|21)(?:0[1-9]|1[0-2])(?:0[1-9]|1[0-9]|2[0-9]|3[01])_(\d*)(_[\d])?.(?:jpg|jpeg|mp4|gif)/)) {
+    if (filename.match(/^20(?:19|20|21)(?:0[1-9]|1[0-2])(?:0[1-9]|1[0-9]|2[0-9]|3[01])_(\d*)(_[\d])?.(?:jpg|jpeg|mp4|gif)/)) {
         return 0;
     }
     switch (filename.substring(0, 3)) {
+        case "PXL": // M's pixel photos
+            return 4;
         case "IMG":
             return 4;
         case "PHO":
             return 6;
         case "Scr": // screenshot
             return 11;
-        case "VI":
-            return filename.index("_") + 1;
+        case "VID", "MVI": // VIDEO_ from M's phone
+            return filename.indexOf("_") + 1;
         default:
             console.log("UNRECOGNIZED FILE FORMAT: " + filename);
             return -1;
@@ -155,5 +158,10 @@ function processFolder(sourceFolder, destinationFolder) {
 var rootDestinationFolder = "D:\\Pictures\\";
 var bryanRootFolder = "D:\\Pictures\\From Bryan Phone\\Saved pictures\\";
 var dirs = getFolders(bryanRootFolder);
-console.log("Folders:" + dirs);
+console.log("Bryan Folders:" + dirs);
 processFolder(bryanRootFolder, rootDestinationFolder);
+
+var mariaRootFolder = "D:\\Pictures\\From Maria's Phone\\Android"
+dirs = getFolders(mariaRootFolder);
+console.log("Maria Folders:" + dirs);
+processFolder(mariaRootFolder, rootDestinationFolder);
